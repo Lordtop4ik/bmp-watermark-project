@@ -136,6 +136,53 @@ bool BMP::Load(const char* filename) {
     return true;
 }
 
+bool BMP::SaveHeaders(const char* filename) const {
+    if (filename==nullptr){
+        std::cerr << "Не указан путь для записи BMP\n";
+        return false;
+    }
+    if (pixels==nullptr || width<=0 || height<=0){
+        std::cerr << "Нет изображения для записи\n";
+        return false;
+    }
+
+    uint64_t row_size = (uint64_t)width * 3;
+    uint64_t padding = (4 - row_size % 4) % 4;
+    uint64_t image_size = (row_size + padding) * height;
+    uint64_t pixel_offset = sizeof(BmpFileHeader) + sizeof(BmpInfoHeader);
+    if (image_size > std::numeric_limits<uint32_t>::max() - pixel_offset){
+        std::cerr << "Изображение слишком велико для записи BMP\n";
+        return false;
+    }
+
+    BmpFileHeader file_header{};
+    file_header.signature = 0x4D42;
+    file_header.file_size = (uint32_t)(pixel_offset + image_size);
+    file_header.pixel_offset = (uint32_t)pixel_offset;
+
+    BmpInfoHeader info_header{};
+    info_header.header_size = sizeof(BmpInfoHeader);
+    info_header.width = width;
+    info_header.height = height;
+    info_header.planes = 1;
+    info_header.bit_depth = bit_depth;
+    info_header.image_size = (uint32_t)image_size;
+
+    std::ofstream file(filename, std::ios::binary);
+    if (!file.is_open()){
+        std::cerr << "Не удалось открыть файл для записи BMP: " << filename << '\n';
+        return false;
+    }
+    file.write((const char*)&file_header, sizeof(file_header));
+    file.write((const char*)&info_header, sizeof(info_header));
+    file.close();
+    if (!file){
+        std::cerr << "Не удалось записать заголовки BMP\n";
+        return false;
+    }
+    return true;
+}
+
 int BMP::GetWidth() const {
     return width;
 }
