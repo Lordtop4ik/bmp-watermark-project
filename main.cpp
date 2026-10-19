@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include "bmp.h"
+#include "watermark.h"
 
 int main(int argc, char* argv[]) {
 
@@ -28,13 +29,33 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+
     std::cout << "[INFO] Размер оригинала: " << original_image.GetWidth() << "x" << original_image.GetHeight() << "\n";
     std::cout << "[INFO] Размер метки: " << watermark_image.GetWidth() << "x" << watermark_image.GetHeight() << "\n";
 
     if (watermark_image.GetWidth() > original_image.GetWidth() || 
         watermark_image.GetHeight() > original_image.GetHeight()) {
-        std::cerr << "[WARN] Водяной знак больше оригинала. Наложение может выйти за границы!\n";
+        std::cerr << "[ERROR] Размеры изображений не совпадают: водяной знак больше оригинала!\n";
+        return 1;
     }
 
+    std::cout << "[INFO] Наложение водяного знака...\n";
+    double alpha = 0.4;
+    int offset_x = 0;
+    int offset_y = 0;
+    
+    if (!ApplyWatermark(original_image, watermark_image, offset_x, offset_y, alpha)) {
+        std::cerr << "[ERROR] Ошибка при наложении водяного знака.\n";
+        return 1;
+    }
+
+    std::cout << "[INFO] Сохранение результата в " << output_path << "...\n";
+    
+    if (!original_image.Save(output_path.c_str())) { 
+        std::cerr << "[ERROR] Не удалось сохранить результат.\n";
+        return 1;
+    }
+
+    std::cout << "[SUCCESS] Программа успешно завершила работу!\n";
     return 0;
 }
