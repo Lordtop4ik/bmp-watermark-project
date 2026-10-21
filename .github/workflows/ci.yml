@@ -2,9 +2,9 @@ name: C++ CI Build
 
 on:
   push:
-    branches: [ "main", "dev", "integration-ci" ]
+    branches: [ "main", "dev", "integration-ci", "integration" ]
   pull_request:
-    branches: [ "main", "dev" ]
+    branches: [ "main", "dev", "integration" ]
 
 jobs:
   build:

@@ -90,7 +90,7 @@ bool BMP::Load(const char* filename) {
         std::cerr << "Размер BMP слишком велик для загрузки\n";
         return false;
     }
-
+    
     file.seekg(0, std::ios::end);
     std::streamoff file_size = file.tellg();
     if (!file || file_size<0 || (uint64_t)file_size < file_header.pixel_offset ||
@@ -137,6 +137,14 @@ bool BMP::Load(const char* filename) {
 }
 
 bool BMP::SaveHeaders(const char* filename) const {
+    return SaveImpl(filename, false);
+}
+
+bool BMP::Save(const char* filename) const {
+    return SaveImpl(filename, true);
+}
+
+bool BMP::SaveImpl(const char* filename, bool write_pixels) const {
     if (filename==nullptr){
         std::cerr << "Не указан путь для записи BMP\n";
         return false;
@@ -175,9 +183,19 @@ bool BMP::SaveHeaders(const char* filename) const {
     }
     file.write((const char*)&file_header, sizeof(file_header));
     file.write((const char*)&info_header, sizeof(info_header));
+    if (write_pixels) {
+        const char padding_bytes[3]{};
+        for (int y = height - 1; y >= 0; --y) {
+            file.write((const char*)(pixels + (size_t)y * width), (std::streamsize)row_size);
+            file.write(padding_bytes, (std::streamsize)padding);
+            if (!file) {
+                break;
+            }
+        }
+    }
     file.close();
     if (!file){
-        std::cerr << "Не удалось записать заголовки BMP\n";
+        std::cerr << "Не удалось записать BMP\n";
         return false;
     }
     return true;

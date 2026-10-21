@@ -7,11 +7,11 @@ add_compile_options(-Wall -Wextra -O2)
 
 add_executable(watermark 
     main.cpp 
-    bmp/bmp.cpp 
+    BMP/bmp.cpp
     watermark/watermark.cpp
 )
 
 target_include_directories(watermark PRIVATE 
-    bmp
+    BMP
     watermark
 )

@@ -17,6 +17,7 @@ public:
     BMP& operator=(const BMP&) = delete;
 
     bool Load(const char* filename);
+    bool Save(const char* filename) const;
     // Записывает только заголовки, без пикселей. Файл пока не является полным BMP.
     bool SaveHeaders(const char* filename) const;
 
@@ -29,6 +30,8 @@ public:
     const Pixel& GetPixel(int x, int y) const;
 
 private:
+    bool SaveImpl(const char* filename, bool write_pixels) const;
+
     int width;
     int height;
     int bit_depth;
