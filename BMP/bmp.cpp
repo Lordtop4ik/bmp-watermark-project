@@ -5,6 +5,7 @@
 #include <limits>
 #include <new>
 
+// Поля заголовков должны идти подряд, как в файле (little-endian).
 #pragma pack(push, 1)
 struct BmpFileHeader {
     uint16_t signature;
@@ -52,6 +53,7 @@ bool BMP::Load(const char* filename) {
         return false;
     }
 
+    // Читаем оба заголовка до выделения памяти под изображение.
     BmpFileHeader file_header{};
     BmpInfoHeader info_header{};
     file.read((char*)&file_header, sizeof(file_header));
@@ -83,6 +85,7 @@ bool BMP::Load(const char* filename) {
     }
     uint64_t pixel_count = (uint64_t)new_width * new_height;
     uint64_t row_size = (uint64_t)new_width * 3;
+    // В файле каждая строка дополнена до кратности четырём байтам.
     uint64_t padding = (4 - row_size % 4) % 4;
     uint64_t data_size = (row_size + padding) * new_height;
     if (pixel_count > std::numeric_limits<size_t>::max() / sizeof(Pixel) ||
@@ -91,6 +94,7 @@ bool BMP::Load(const char* filename) {
         return false;
     }
     
+    // Проверяем реальную длину файла, не доверяя размерам из заголовка.
     file.seekg(0, std::ios::end);
     std::streamoff file_size = file.tellg();
     if (!file || file_size<0 || (uint64_t)file_size < file_header.pixel_offset ||
@@ -104,6 +108,7 @@ bool BMP::Load(const char* filename) {
         return false;
     }
 
+    // Временный массив позволяет сохранить прежнее изображение при ошибке.
     Pixel* new_pixels = nullptr;
     try {
         new_pixels = new Pixel[(size_t)pixel_count];
@@ -114,6 +119,7 @@ bool BMP::Load(const char* filename) {
 
     for (int i = 0; i<new_height; ++i){
         int y = i;
+        // Положительная высота: строки файла идут снизу вверх.
         if (info_header.height>0){
             y = new_height - 1 - i;
         }
@@ -136,15 +142,7 @@ bool BMP::Load(const char* filename) {
     return true;
 }
 
-bool BMP::SaveHeaders(const char* filename) const {
-    return SaveImpl(filename, false);
-}
-
 bool BMP::Save(const char* filename) const {
-    return SaveImpl(filename, true);
-}
-
-bool BMP::SaveImpl(const char* filename, bool write_pixels) const {
     if (filename==nullptr){
         std::cerr << "Не указан путь для записи BMP\n";
         return false;
@@ -158,7 +156,8 @@ bool BMP::SaveImpl(const char* filename, bool write_pixels) const {
     uint64_t padding = (4 - row_size % 4) % 4;
     uint64_t image_size = (row_size + padding) * height;
     uint64_t pixel_offset = sizeof(BmpFileHeader) + sizeof(BmpInfoHeader);
-    if (image_size > std::numeric_limits<uint32_t>::max() - pixel_offset){
+    if (image_size > std::numeric_limits<uint32_t>::max() - pixel_offset ||
+        row_size > (uint64_t)std::numeric_limits<std::streamsize>::max()){
         std::cerr << "Изображение слишком велико для записи BMP\n";
         return false;
     }
@@ -183,14 +182,13 @@ bool BMP::SaveImpl(const char* filename, bool write_pixels) const {
     }
     file.write((const char*)&file_header, sizeof(file_header));
     file.write((const char*)&info_header, sizeof(info_header));
-    if (write_pixels) {
-        const char padding_bytes[3]{};
-        for (int y = height - 1; y >= 0; --y) {
-            file.write((const char*)(pixels + (size_t)y * width), (std::streamsize)row_size);
-            file.write(padding_bytes, (std::streamsize)padding);
-            if (!file) {
-                break;
-            }
+    // Записываем положительную высоту, поэтому начинаем с нижней строки.
+    const char padding_bytes[3]{};
+    for (int y = height - 1; y >= 0; --y) {
+        file.write((const char*)(pixels + (size_t)y * width), (std::streamsize)row_size);
+        file.write(padding_bytes, (std::streamsize)padding);
+        if (!file) {
+            break;
         }
     }
     file.close();

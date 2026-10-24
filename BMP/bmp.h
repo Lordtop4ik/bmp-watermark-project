@@ -16,10 +16,10 @@ public:
     BMP(const BMP&) = delete;
     BMP& operator=(const BMP&) = delete;
 
+    // Несжатый 24-битный BMP v3. При ошибке прежнее изображение сохраняется.
     bool Load(const char* filename);
+    // Записывает полноценный BMP: заголовки, пиксели и выравнивание строк.
     bool Save(const char* filename) const;
-    // Записывает только заголовки, без пикселей. Файл пока не является полным BMP.
-    bool SaveHeaders(const char* filename) const;
 
     int GetWidth() const;
     int GetHeight() const;
@@ -30,8 +30,6 @@ public:
     const Pixel& GetPixel(int x, int y) const;
 
 private:
-    bool SaveImpl(const char* filename, bool write_pixels) const;
-
     int width;
     int height;
     int bit_depth;
