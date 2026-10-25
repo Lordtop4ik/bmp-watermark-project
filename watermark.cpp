@@ -11,7 +11,7 @@ static uint8_t BlendChannel(uint8_t original, uint8_t mark, double alpha) {
     return static_cast<uint8_t>(std::lround(result));
 }
 
-bool ApplyWatermark(BMP& base, const BMP& watermark, int offset_x, int offset_y, double alpha) {
+bool ApplyWatermark(BMP& base, const BMP& watermark, double alpha = 0.5, int offset_x = 0, int offset_y = 0) {
     // Проверяем корректность параметров
     if (base.GetWidth() <= 0 ||
         base.GetHeight() <= 0 ||
@@ -20,8 +20,7 @@ bool ApplyWatermark(BMP& base, const BMP& watermark, int offset_x, int offset_y,
         base.GetBitDepth() != 24 ||
         watermark.GetBitDepth() != 24 ||
         alpha < 0.0 ||
-        alpha > 1.0 ||
-        !std::isfinite(alpha)) {
+        alpha > 1.0 ) {
         return false;
     }
 
