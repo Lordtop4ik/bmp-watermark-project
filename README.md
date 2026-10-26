@@ -18,3 +18,12 @@
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
+```
+
+## Использование
+
+Программа поддерживает 4 режима работы: интерактивный, через INI-файл, через аргументы командной строки и вывод справки.
+
+**1. Запрос помощи (справка):**
+```bash
+./build/watermark -h

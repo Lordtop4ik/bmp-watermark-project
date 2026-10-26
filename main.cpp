@@ -3,11 +3,11 @@
 #include <string>
 #include <map>
 #include <sstream>
-#include <cstdlib>
+#include <vector>
 #include "bmp.h"
 #include "watermark.h"
 
-// Простой парсер INI-файлов (без внешних библиотек)
+// Простой парсер INI-файлов
 std::map<std::string, std::string> ParseINI(const std::string& filename) {
     std::map<std::string, std::string> config;
     std::ifstream file(filename);
@@ -17,55 +17,111 @@ std::map<std::string, std::string> ParseINI(const std::string& filename) {
 
     std::string line;
     while (std::getline(file, line)) {
-        // Удаляем пробелы в начале и конце
         line.erase(0, line.find_first_not_of(" \t\r\n"));
         line.erase(line.find_last_not_of(" \t\r\n") + 1);
-
-        // Пропускаем пустые строки и комментарии
         if (line.empty() || line[0] == '#' || line[0] == ';') continue;
 
         size_t delimiter_pos = line.find('=');
         if (delimiter_pos != std::string::npos) {
             std::string key = line.substr(0, delimiter_pos);
             std::string value = line.substr(delimiter_pos + 1);
-
-            // Очистка пробелов вокруг ключа и значения
             key.erase(key.find_last_not_of(" \t") + 1);
             value.erase(0, value.find_first_not_of(" \t"));
-
             config[key] = value;
         }
     }
     return config;
 }
 
+void PrintHelp(const char* prog_name) {
+    std::cout << "Использование:\n";
+    std::cout << "  1. Интерактивный режим: " << prog_name << "\n";
+    std::cout << "  2. Запуск через INI-файл: " << prog_name << " <путь_к_config.ini>\n";
+    std::cout << "  3. Запуск через аргументы: " << prog_name << " <in.bmp> <mark.bmp> <out.bmp> <alpha> <x> <y>\n";
+    std::cout << "  4. Справка: " << prog_name << " -h\n\n";
+    std::cout << "Пример через аргументы: " << prog_name << " original.bmp mark.bmp out.bmp 0.4 10 10\n";
+    std::cout << "Пример через INI: " << prog_name << " config.ini\n";
+}
+
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
-        std::cerr << "Ошибка: неверное количество аргументов.\n";
-        std::cerr << "Использование: " << argv[0] << " <путь_к_config.ini>\n";
-        std::cerr << "Пример: " << argv[0] << " config/example.ini\n";
+    std::string input_path, watermark_path, output_path;
+    double alpha = 0.4;
+    int offset_x = 0, offset_y = 0;
+
+    // --- РЕЖИМ 1: Запрос помощи ---
+    if (argc == 2 && (std::string(argv[1]) == "-h" || std::string(argv[1]) == "--help")) {
+        PrintHelp(argv[0]);
+        return 0;
+    }
+
+    // --- РЕЖИМ 2: Чтение из INI-файла ---
+    if (argc == 2) {
+        std::string config_path = argv[1];
+        try {
+            std::cout << "[INFO] Загрузка конфигурации: " << config_path << "...\n";
+            auto cfg = ParseINI(config_path);
+            
+            input_path = cfg.count("input_path") ? cfg["input_path"] : "";
+            watermark_path = cfg.count("watermark_path") ? cfg["watermark_path"] : "";
+            output_path = cfg.count("output_path") ? cfg["output_path"] : "";
+            
+            if (cfg.count("alpha")) alpha = std::stod(cfg["alpha"]);
+            if (cfg.count("offset_x")) offset_x = std::stoi(cfg["offset_x"]);
+            if (cfg.count("offset_y")) offset_y = std::stoi(cfg["offset_y"]);
+        } catch (const std::exception& e) {
+            std::cerr << "[ERROR] " << e.what() << "\n";
+            return 1;
+        }
+    }
+    // --- РЕЖИМ 3: Аргументы командной строки ---
+    else if (argc == 7) {
+        input_path = argv[1];
+        watermark_path = argv[2];
+        output_path = argv[3];
+        try {
+            alpha = std::stod(argv[4]);
+            offset_x = std::stoi(argv[5]);
+            offset_y = std::stoi(argv[6]);
+        } catch (const std::exception&) {
+            std::cerr << "[ERROR] Ошибка парсинга числовых аргументов.\n";
+            return 1;
+        }
+    }
+    // --- РЕЖИМ 4: Интерактивный ввод ---
+    else if (argc == 1) {
+        std::cout << "=== Интерактивный режим ===\n";
+        std::cout << "Введите путь к исходному изображению: ";
+        std::getline(std::cin, input_path);
+        std::cout << "Введите путь к водяному знаку: ";
+        std::getline(std::cin, watermark_path);
+        std::cout << "Введите путь для сохранения результата: ";
+        std::getline(std::cin, output_path);
+
+        std::string temp;
+        std::cout << "Введите прозрачность (alpha, Enter = 0.4): ";
+        std::getline(std::cin, temp);
+        if (!temp.empty()) alpha = std::stod(temp);
+
+        std::cout << "Введите смещение по X (Enter = 0): ";
+        std::getline(std::cin, temp);
+        if (!temp.empty()) offset_x = std::stoi(temp);
+
+        std::cout << "Введите смещение по Y (Enter = 0): ";
+        std::getline(std::cin, temp);
+        if (!temp.empty()) offset_y = std::stoi(temp);
+    }
+    // --- НЕВЕРНЫЕ АРГУМЕНТЫ ---
+    else {
+        std::cerr << "[ERROR] Неверное количество аргументов.\n\n";
+        PrintHelp(argv[0]);
         return 1;
     }
 
-    std::string config_path = argv[1];
-    std::map<std::string, std::string> cfg;
-
-    try {
-        std::cout << "[INFO] Загрузка конфигурации: " << config_path << "...\n";
-        cfg = ParseINI(config_path);
-    } catch (const std::exception& e) {
-        std::cerr << "[ERROR] " << e.what() << "\n";
+    // Проверка, что пути не пустые (если INI-файл был неполным)
+    if (input_path.empty() || watermark_path.empty() || output_path.empty()) {
+        std::cerr << "[ERROR] Не указаны пути к файлам (input, watermark или output).\n";
         return 1;
     }
-
-    // Извлекаем параметры с значениями по умолчанию
-    std::string input_path = cfg.count("input_path") ? cfg["input_path"] : "examples/original.bmp";
-    std::string watermark_path = cfg.count("watermark_path") ? cfg["watermark_path"] : "examples/watermark.bmp";
-    std::string output_path = cfg.count("output_path") ? cfg["output_path"] : "examples/result.bmp";
-    
-    double alpha = cfg.count("alpha") ? std::stod(cfg["alpha"]) : 0.4;
-    int offset_x = cfg.count("offset_x") ? std::stoi(cfg["offset_x"]) : 0;
-    int offset_y = cfg.count("offset_y") ? std::stoi(cfg["offset_y"]) : 0;
 
     // Загрузка изображений
     BMP original_image;
@@ -82,13 +138,10 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::cout << "[INFO] Размер оригинала: " << original_image.GetWidth() << "x" << original_image.GetHeight() << "\n";
-    std::cout << "[INFO] Размер метки: " << watermark_image.GetWidth() << "x" << watermark_image.GetHeight() << "\n";
-
     // Наложение
-    std::cout << "[INFO] Наложение водяного знака (alpha=" << alpha << ", offset=" << offset_x << "," << offset_y << ")...\n";
+    std::cout << "[INFO] Наложение (alpha=" << alpha << ", offset=" << offset_x << "," << offset_y << ")...\n";
     if (!ApplyWatermark(original_image, watermark_image, offset_x, offset_y, alpha)) {
-        std::cerr << "[ERROR] Ошибка при наложении водяного знака. Проверьте границы.\n";
+        std::cerr << "[ERROR] Ошибка при наложении (проверьте, что метка не выходит за границы).\n";
         return 1;
     }
 
