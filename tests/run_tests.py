@@ -3,6 +3,10 @@ import os
 import subprocess
 import sys
 
+# Принудительно включаем UTF-8 для вывода в консоль (фикс для Windows CI)
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+
 def create_bmp(filename, width, height, b, g, r):
     # Создает простой 24-битный BMP, залитый одним цветом
     row_size = (width * 3 + 3) & ~3
