@@ -1,4 +1,5 @@
 # BMP Watermark Project
+[![C++ CI Build](https://github.com/Lordtop4ik/bmp-watermark-project/actions/workflows/ci.yml/badge.svg?branch=integration-ivan-student3)](https://github.com/Lordtop4ik/bmp-watermark-project/actions/workflows/ci.yml)
 
 Командный проект по дисциплине ИСРПО. Программа на C++ для наложения цифрового водяного знака на BMP-изображения.
 
