@@ -17,8 +17,8 @@
 Требуется компилятор C++17 (GCC, Clang или MSVC) и утилита `cmake`.
 
 ```bash
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
+cmake -B build 
+cmake --build build 
 ```
 
 ## Использование
