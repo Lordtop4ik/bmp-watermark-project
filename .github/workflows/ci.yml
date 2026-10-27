@@ -1,0 +1,32 @@
+name: Cross-Platform C++ CI
+
+on:
+  push:
+    branches: [ "main", "dev", "integration" ]
+  pull_request:
+    branches: [ "main", "dev", "integration" ]
+
+jobs:
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+    - name: Клонирование репозитория
+      uses: actions/checkout@v3
+
+    - name: Настройка CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+    - name: Сборка проекта
+      run: cmake --build build --config Release
+
+    - name: Настройка Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Запуск автотестов
+      run: python tests/run_tests.py
